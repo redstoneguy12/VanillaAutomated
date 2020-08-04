@@ -15,13 +15,6 @@ import vanillaautomated.VanillaAutomatedItems;
 
 @Mixin(VillagerEntity.class)
 public abstract class VillagerMixin {
-
-    // Infinite trades
-    @Inject(method="onInteractionWith", at=@At("HEAD"))
-    private void onInteractionWith(EntityInteraction interaction, Entity entity, CallbackInfo ci) {
-        ((VillagerEntity)(Object)this).restock();
-    }
-
     // Be able to use mob net on villagers
     @Inject(method="interactMob", at=@At("HEAD"), cancellable = true)
     public void interactMob(PlayerEntity player, Hand hand, CallbackInfoReturnable ci) {
@@ -29,5 +22,4 @@ public abstract class VillagerMixin {
             ci.setReturnValue(ActionResult.PASS);
         }
     }
-
 }
