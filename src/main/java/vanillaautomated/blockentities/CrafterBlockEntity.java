@@ -13,6 +13,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.ScreenHandlerProvider;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.CraftingInventory;
 import net.minecraft.inventory.Inventories;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
@@ -27,6 +28,7 @@ import net.minecraft.recipe.*;
 import net.minecraft.screen.PropertyDelegate;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.ScreenHandlerContext;
+import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.state.property.Properties;
 import net.minecraft.text.Text;
@@ -40,6 +42,7 @@ import net.minecraft.util.registry.Registry;
 import vanillaautomated.VanillaAutomated;
 import vanillaautomated.VanillaAutomatedBlocks;
 import vanillaautomated.gui.CrafterBlockController;
+import vanillaautomated.gui.DummyScreenHandler;
 
 import java.util.Collection;
 import java.util.List;
@@ -329,6 +332,21 @@ public class CrafterBlockEntity extends MachineBlockEntity implements SidedInven
             return false;
         }
 
+        ItemStack output;
+
+        if(recipe instanceof FireworkRocketRecipe) {
+            ScreenHandler screenHandler = new DummyScreenHandler(ScreenHandlerType.GENERIC_3X3, 0);
+            CraftingInventory craftingInventory = new CraftingInventory(screenHandler, 3, 3);
+
+            for(int i = 0; i < 9; i++) {
+                craftingInventory.setStack(i, items.get(i + 1).copy());
+            }
+
+            output = recipe.craft(craftingInventory);
+        } else {
+            output = recipe.getOutput();
+        }
+
         // Check if all slots match recipe
         for (int i = 0; i < 9; i++) {
             if (items.get(i + 1).getItem() != recipeItems.get(i)) {
@@ -340,16 +358,30 @@ public class CrafterBlockEntity extends MachineBlockEntity implements SidedInven
             return true;
         }
 
-        if (items.get(10).getItem() != recipe.getOutput().getItem()) {
+        if (items.get(10).getItem() != output.getItem()) {
             return false;
         }
 
-        return (items.get(10).getCount() + recipe.getOutput().getCount()) <= recipe.getOutput().getMaxCount();
+        return (items.get(10).getCount() + output.getCount()) <= output.getMaxCount();
     }
 
     private void updateCurrentRecipe() {
         Collection<CraftingRecipe> recipes = VanillaAutomated.getOrCreateCraftingRecipes(getWorld());
         for (CraftingRecipe recipe : recipes) {
+            if (recipe instanceof FireworkRocketRecipe) {
+                ScreenHandler screenHandler = new DummyScreenHandler(ScreenHandlerType.GENERIC_3X3, 0);
+                CraftingInventory craftingInventory = new CraftingInventory(screenHandler, 3, 3);
+
+                for(int i = 0; i < 9; i++) {
+                    craftingInventory.setStack(i, items.get(i + 1));
+                }
+
+                if(recipe.matches(craftingInventory, null)) {
+                    currentRecipe = recipe;
+                    return;
+                }
+            }
+
             if (recipe instanceof SpecialCraftingRecipe) {
                 continue;
             }
@@ -428,6 +460,21 @@ public class CrafterBlockEntity extends MachineBlockEntity implements SidedInven
     }
 
     private void craftItem(CraftingRecipe craftingRecipe) {
+        ItemStack output;
+
+        if(craftingRecipe instanceof FireworkRocketRecipe) {
+            ScreenHandler screenHandler = new DummyScreenHandler(ScreenHandlerType.GENERIC_3X3, 0);
+            CraftingInventory craftingInventory = new CraftingInventory(screenHandler, 3, 3);
+
+            for(int i = 0; i < 9; i++) {
+                craftingInventory.setStack(i, items.get(i + 1).copy());
+            }
+
+            output = craftingRecipe.craft(craftingInventory);
+        } else {
+            output = craftingRecipe.getOutput();
+        }
+
         for (int i = 0; i < 9; i++) {
             if (items.get(i + 1).getCount() >= 1) {
                 items.get(i + 1).decrement(1);
@@ -435,9 +482,9 @@ public class CrafterBlockEntity extends MachineBlockEntity implements SidedInven
         }
 
         if (items.get(10).getItem() == Items.AIR) {
-            items.set(10, craftingRecipe.getOutput().copy());
+            items.set(10, output.copy());
         } else {
-            items.set(10, new ItemStack(craftingRecipe.getOutput().getItem(), craftingRecipe.getOutput().getCount() + items.get(10).getCount()));
+            items.set(10, new ItemStack(output.getItem(), output.getCount() + items.get(10).getCount()));
         }
     }
 
